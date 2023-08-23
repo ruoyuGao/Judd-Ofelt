@@ -1,8 +1,6 @@
 # Judd-Ofelt
 
 ## Usage
-
-## Usage
 1. Install anaconda3 for windows → [link](https://www.anaconda.com/download#downloads)
 2. open anaconda prompt from start menu
 
