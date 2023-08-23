@@ -2,39 +2,45 @@ import os
 import numpy as np
 import constants as CONSTANTS
 
+input_main_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'input/input_files')
+input_peak_area_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'input/peak_areas')
+output_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'output')
 
-def process_all_files(input_folder_path: str, output_folder_path: str):
+def process_all_files(input_folder_path_peak: str, input_file_path_main: str, output_folder_path: str):
     """
     Process all files in a folder
     """
-    for filename in os.listdir(input_folder_path):
-        outpu_filename = filename.replace('input', 'output')
-        input_file_path = os.path.join(input_folder_path, filename)
+    for filename in os.listdir(input_folder_path_peak):
+        outpu_filename = filename.replace('peak_area', 'output')
+        input_file_path_peak_area = os.path.join(input_folder_path_peak, filename)
         output_file_path = os.path.join(output_folder_path, outpu_filename)
         # open file and calculate the JO parameter
         clean_output_file(output_file_path)
-        B = process_JO_parameter(input_file_path, output_file_path)
-        process_theoretical_oscillator_sthengths(B, input_file_path, output_file_path)
+        B = process_JO_parameter(input_file_path_peak_area, input_file_path_main, output_file_path)
+        process_theoretical_oscillator_sthengths(B, input_file_path_peak_area, input_file_path_main, output_file_path)
     
-def process_JO_parameter(input_file_path: str, out_put_file_path: str) -> list:
+def process_JO_parameter(input_file_path: str, input_file_main: str, out_put_file_path: str) -> list:
     """
     Calculate the JO parameter for a file
     """
     # open file and calculate the JO parameter
-    with open(input_file_path, "r") as f:
+    with open(input_file_main, "r") as f:
         M, N, nre, thickness, concen, mj = [float(x) for x in f.readline().split(',')]
         M = int(M)
         N = int(N)
         nre = float(nre)
-        print(f"File: {input_file_path} - M: {M}, N: {N}, nre: {nre}, thickness: {thickness}, concen: {concen}, mj: {mj}")
+        print(f"File: {input_file_main} - M: {M}, N: {N}, nre: {nre}, thickness: {thickness}, concen: {concen}, mj: {mj}")
         Fex = np.zeros(int(M+1), dtype=float)
         B = np.zeros(int(M+1), dtype=float)
         a = np.zeros((int(M+1), 4), dtype=float)
         parea = np.zeros(int(M+1), dtype=float)
         result = np.zeros(int(M+1), dtype=float)
         levels = ["default" for _ in range(int(M+1))]
+        with open(input_file_path, "r") as f_main:
+            for i, line in enumerate(f_main, start=1):
+                parea[i] = float(line)
         for i, line in enumerate(f, start=1):
-            levels[i], mj, parea[i], mu, u2, u4, u6 = [float(item.strip()) if item.strip().replace('.', '', 1).isdigit() else item.strip() for item in line.split(",")]
+            levels[i], mj, mu, u2, u4, u6 = [float(item.strip()) if item.strip().replace('.', '', 1).isdigit() else item.strip() for item in line.split(",")]
             # print(f"levels: {levels[i]}, mj: {mj}, parea: {parea[i]}, mu: {mu}, u2: {u2}, u4: {u4}, u6: {u6}")
             Fex[i] = (CONSTANTS.mass * CONSTANTS.Vc ** 2) / (CONSTANTS.pi * CONSTANTS.e ** 2) * parea[i] / thickness / concen * 1E-20
             cont = (27 * CONSTANTS.h * (2 * mj + 1) * nre) / (8 * CONSTANTS.pi ** 2 * CONSTANTS.Vc * CONSTANTS.mass * mu * (nre ** 2 + 2) ** 2)
@@ -134,17 +140,20 @@ def process_JO_parameter(input_file_path: str, out_put_file_path: str) -> list:
 
     return B
     
-def process_theoretical_oscillator_sthengths(B: list, input_file_path: str, out_put_file_path: str):
-    with open(input_file_path, "r") as f:
+def process_theoretical_oscillator_sthengths(B: list, input_file_path: str, input_file_main: str, out_put_file_path: str):
+    with open(input_file_main, "r") as f:
         M, N, nre, thickness, concen, mj = [float(x) for x in f.readline().split(',')]
         M = int(M)
         N = int(N)
-        print(f"File: {input_file_path} - M: {M}, N: {N}, nre: {nre}, thickness: {thickness}, concen: {concen}, mj: {mj}")
+        print(f"File: {input_file_main} - M: {M}, N: {N}, nre: {nre}, thickness: {thickness}, concen: {concen}, mj: {mj}")
         levels = ["default" for _ in range(int(M+1))]
         parea = np.zeros(int(M+1), dtype=float)
         result_fcal = np.zeros(int(M+1), dtype=float)
+        with open(input_file_path, "r") as f_main:
+            for i, line in enumerate(f_main, start=1):
+                parea[i] = float(line)
         for i, line in enumerate(f, start=1):
-            levels[i], mj, parea[i], mu, u2, u4, u6 = [float(item.strip()) if item.strip().replace('.', '', 1).isdigit() else item.strip() for item in line.split(",")]
+            levels[i], mj, mu, u2, u4, u6 = [float(item.strip()) if item.strip().replace('.', '', 1).isdigit() else item.strip() for item in line.split(",")]
             cont = (27*CONSTANTS.h*(2*mj+1)*nre)/(8*CONSTANTS.pi**2*CONSTANTS.Vc*CONSTANTS.mass*mu*(nre**2+2)**2)
             fcal = (B[1] * u2 + B[2] * u4 + B[3] * u6) / cont
             result_fcal[i] = int(1E+10 * fcal) / 100
@@ -160,4 +169,5 @@ def clean_output_file(out_put_file_path: str):
         f.write("")
 
 if __name__ == "__main__":
-    process_all_files('/Users/ruoyugao/Downloads/Judd-Ofelt/input', '/Users/ruoyugao/Downloads/Judd-Ofelt/output')
+    main_input_path = os.path.join(input_main_folder_path, "input.txt")
+    process_all_files(input_peak_area_folder_path, main_input_path, output_folder_path)
