@@ -55,7 +55,7 @@ def process_transitions_hwy(input_path: str, output_path: str, input_nre: list, 
 
 if __name__ == "__main__":
     whole_input_path = os.path.join(input_main_folder_path, "a.txt")
-    whole_output_path = os.path.join(output_folder_path, "tran-.csv")
+    whole_output_path = os.path.join(output_folder_path, "tran.csv")
     nre_omiga_input_path = os.path.join(nre_omiga_folder_path, "nre_omig.csv")
 
     result_nre, result_omig = process_n_omiga(nre_omiga_input_path)
